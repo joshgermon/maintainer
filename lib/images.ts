@@ -1,9 +1,17 @@
 import { load } from "cheerio";
 import sharp from 'sharp';
 import fs from 'fs';
+import path from 'path';
 import { Writable } from 'stream';
 
-const baseDir = process.cwd() + '/test';
+const baseDir = process.cwd() + '/test-images';
+
+interface LocalImage {
+    path: string,
+    size: number,
+    ext: string,
+    optimisedSize?: number
+}
 
 async function getPageHTML(url: URL) {
     const req = await fetch(url);
@@ -19,7 +27,6 @@ function getImagesFromPageHTML(page: string) {
         .toArray()
         .map(img => $(img).attr('src'))
         .filter((src: string | undefined): src is string => src?.match(/^.*\.(jpg|JPG|jpeg|png|PNG)$/g) !== null);
-    console.log(images);
     return images;
 }
 
@@ -37,30 +44,28 @@ async function downloadImages(images: Array<string>) {
     return imagePaths;
 }
 
-async function optimiseImages(images: string[]) {
+async function optimiseImages(images: LocalImage[]) {
     for(const image of images) {
-        if(image.match(/^.*\.(jpg|JPG|jpeg)$/g)) {
-            await optimiseJpeg(image);
-            continue;
+        if(image.ext === '.jpg' || image.ext === '.jpg') {
+            await optimiseJpg(image.path);
         }
-        if(image.match(/^.*\.(png|PNG)$/g)) {
-            await optimisePng(image);
-            continue;
+        if(image.ext === '.png') {
+            await optimisePng(image.path);
         }
     }
 }
 
-async function optimiseJpeg(filePath: string) {
+async function optimiseJpg(filePath: string) {
     const data = await sharp(filePath)
         .jpeg({ mozjpeg: true })
         .toBuffer();
-    fs.writeFileSync(filePath + '_optimised.jpg', data);
+    fs.writeFileSync(filePath, data);
 }
 async function optimisePng(filePath: string) {
     const data = await sharp(filePath)
         .png()
         .toBuffer();
-    fs.writeFileSync(filePath + '_optimised.png', data);
+    fs.writeFileSync(filePath, data);
 }
 
 function createDirStructure(url: URL): string {
@@ -73,12 +78,23 @@ function createDirStructure(url: URL): string {
     return baseDir + url.pathname;
 }
 
+function getFileSize(filePath: string) {
+    return fs.statSync(filePath).size;
+}
+
 export async function optimisePageImages() {
     const testURL = new URL('https://www.biennaleofsydney.art/');;
     const pageHTML = await getPageHTML(testURL);
     const images = await getImagesFromPageHTML(pageHTML);
-    const imagePaths = await downloadImages(images);
-    await optimiseImages(imagePaths);
+    const imageDownloadPaths = await downloadImages(images);
+    const localImages = imageDownloadPaths.map((filePath) : LocalImage => ({
+        path: filePath,
+        size: getFileSize(filePath),
+        ext: path.extname(filePath)
+    }));
+    await optimiseImages(localImages);
+    localImages.forEach((image) => { image.optimisedSize = getFileSize(image.path)});
+    console.log(localImages);
 }
 
 await optimisePageImages();

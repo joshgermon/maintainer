@@ -8,8 +8,8 @@
   },
   "type": "module",
   "scripts": {
-    "links": "tsc && node dist/links",
-    "images": "tsc && node dist/images"
+    "links": "tsc && node dist/lib/links",
+    "images": "tsc && node dist/lib/images"
   },
   "keywords": [],
   "author": "",
