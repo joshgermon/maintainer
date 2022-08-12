@@ -1,2 +1,2 @@
-# maintainer
-A collection of tools
+# Maintainer
+A collection of tools.
