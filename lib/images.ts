@@ -3,7 +3,7 @@ import sharp from 'sharp';
 import fs from 'fs';
 import { Writable } from 'stream';
 
-const baseDir = process.cwd() + '/images';
+const baseDir = process.cwd() + '/test';
 
 async function getPageHTML(url: URL) {
     const req = await fetch(url);
@@ -73,8 +73,12 @@ function createDirStructure(url: URL): string {
     return baseDir + url.pathname;
 }
 
-const testURL = new URL('https://www.jaladesign.com.au/');;
-const pageHTML = await getPageHTML(testURL);
-const images = await getImagesFromPageHTML(pageHTML);
-const imagePaths = await downloadImages(images);
-await optimiseImages(imagePaths);
+export async function optimisePageImages() {
+    const testURL = new URL('https://www.biennaleofsydney.art/');;
+    const pageHTML = await getPageHTML(testURL);
+    const images = await getImagesFromPageHTML(pageHTML);
+    const imagePaths = await downloadImages(images);
+    await optimiseImages(imagePaths);
+}
+
+await optimisePageImages();
