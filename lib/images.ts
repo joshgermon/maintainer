@@ -24,6 +24,7 @@ function getImagesFromPageHTML(page: string) {
 }
 
 async function downloadImages(images: Array<string>) {
+    let imagePaths: string[] = [];
     for (const image of images) {
         const url = new URL(image);
         const res = await fetch(url);
@@ -31,15 +32,35 @@ async function downloadImages(images: Array<string>) {
         const fileStream = fs.createWriteStream(path);
         const writeStream = Writable.toWeb(fileStream);
         await res.body?.pipeTo(writeStream);
+        imagePaths.push(path);
+    }
+    return imagePaths;
+}
+
+async function optimiseImages(images: string[]) {
+    for(const image of images) {
+        if(image.match(/^.*\.(jpg|JPG|jpeg)$/g)) {
+            await optimiseJpeg(image);
+            continue;
+        }
+        if(image.match(/^.*\.(png|PNG)$/g)) {
+            await optimisePng(image);
+            continue;
+        }
     }
 }
 
-
-async function optimiseImage(filePath: string) {
+async function optimiseJpeg(filePath: string) {
     const data = await sharp(filePath)
         .jpeg({ mozjpeg: true })
         .toBuffer();
-    fs.writeFileSync(process.cwd() + '/images/i.jpg', data);
+    fs.writeFileSync(filePath + '_optimised.jpg', data);
+}
+async function optimisePng(filePath: string) {
+    const data = await sharp(filePath)
+        .png()
+        .toBuffer();
+    fs.writeFileSync(filePath + '_optimised.png', data);
 }
 
 function createDirStructure(url: URL): string {
@@ -55,4 +76,5 @@ function createDirStructure(url: URL): string {
 const testURL = new URL('https://www.jaladesign.com.au/');;
 const pageHTML = await getPageHTML(testURL);
 const images = await getImagesFromPageHTML(pageHTML);
-await downloadImages(images);
+const imagePaths = await downloadImages(images);
+await optimiseImages(imagePaths);
